@@ -107,52 +107,95 @@ $products = $stmt->fetchAll();
             </div>
         </div>
 
+        
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            <?php foreach($products as $product): ?>
-                <div class="col">
-                    <div class="card h-100 product-card p-3">
-                        <div class="text-center py-4 my-2 bg-light rounded-3">
-                            <i class="fa-solid fa-laptop-code fa-4x text-muted opacity-50"></i>
-                        </div>
+    <?php foreach($products as $product): ?>
+        <div class="col">
+            <div class="card h-100 premium-product-card">
+                
+                <!-- 📸 PREMIUM IMAGE CONTAINER -->
+                <div class="product-image-wrapper">
+                    <?php 
+                    if (!empty($product['image'])): 
+                    ?>
+                        <img src="uploads/products/<?php echo htmlspecialchars($product['image']); ?>" 
+                             alt="<?php echo htmlspecialchars($product['title']); ?>" 
+                             class="product-img">
+                    <?php 
+                    else: 
+                        // 💡 Unsplash Source වෙනුවට නිවැරදිව Keyword එකට අදාළව නිශ්චිත පින්තූරයක් දෙන නව API එක
+                        $clean_title = preg_replace('/[^A-Za-z0-9 ]/', '', $product['title']);
+                        $search_keyword = strtolower(str_replace(' ', ',', $clean_title));
                         
-                        <div class="card-body d-flex flex-column text-start">
-                            <h5 class="card-title fw-bold text-dark mb-2"><?php echo htmlspecialchars($product['title']); ?></h5>
-                            
-                            <div class="mb-3">
-                                <?php if($product['stock'] > 0): ?>
-                                    <span class="badge badge-instock px-3 py-2 rounded-pill">
-                                        <i class="fa-solid fa-check me-1"></i> In Stock (<?php echo $product['stock']; ?>)
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge badge-outofstock px-3 py-2 rounded-pill">
-                                        <i class="fa-solid fa-xmark me-1"></i> Out of Stock
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-
-                            <div class="mt-auto d-flex align-items-center justify-content-between">
-                                <span class="price-tag">Rs. <?php echo number_format($product['price'], 2); ?></span>
-                                
-                                <?php if($product['stock'] > 0): ?>
-                                    <form action="cart.php" method="POST" class="m-0 ajax-cart-form">
-                                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <button type="submit" name="add_to_cart" class="btn btn-cart px-4 py-2 rounded-pill shadow-sm">
-                                            <i class="fa-solid fa-cart-plus me-2"></i>Add to Cart
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <button disabled class="btn btn-secondary px-4 py-2 rounded-pill text-white-50">
-                                        <i class="fa-solid fa-ban me-2"></i>Disabled
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                        // Testing වලදී එකම පින්තූරය ඒම වැළැක්වීමට Product ID එකත් භාවිතා කර ඇත
+                        $image_url = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=500"; // Fallback
+                        
+                        // වඩාත් ගැලපෙන keywords යුගලක් තෝරාගැනීම
+                        if (stripos($product['title'], 'laptop') !== false || stripos($product['title'], 'rog') !== false) {
+                            $image_url = "https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=500&auto=format&fit=crop";
+                        } elseif (stripos($product['title'], 'iphone') !== false || stripos($product['title'], 'phone') !== false) {
+                            $image_url = "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=500&auto=format&fit=crop";
+                        } elseif (stripos($product['title'], 'mouse') !== false || stripos($product['title'], 'logitech') !== false) {
+                            $image_url = "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?q=80&w=500&auto=format&fit=crop";
+                        } else {
+                            // පොදුවේ වෙනත් ඕනෑම ගැජට් එකකට ගැලපෙන පින්තූරයක්
+                            $image_url = "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=500&auto=format&fit=crop";
+                        }
+                    ?>
+                        <img src="<?php echo $image_url; ?>" 
+                             alt="<?php echo htmlspecialchars($product['title']); ?>" 
+                             class="product-img"
+                             loading="lazy">
+                    <?php endif; ?>
+                    
+                    <!-- Quick View Overlay Effect -->
+                    <div class="image-overlay">
+                        <span class="badge bg-dark bg-opacity-75 text-white rounded-pill px-3 py-2"><i class="fa-solid fa-eye me-1"></i> Quick View</span>
                     </div>
                 </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
+                
+                <!-- 📦 CARD BODY -->
+                <div class="card-body d-flex flex-column p-4 text-start">
+                    <span class="text-uppercase text-muted fw-bold tracking-wider mb-1" style="font-size: 0.75rem;">Premium Tech</span>
+                    <h5 class="card-title fw-bold text-dark mb-3 product-title-link"><?php echo htmlspecialchars($product['title']); ?></h5>
+                    
+                    <div class="mb-4">
+                        <?php if($product['stock'] > 0): ?>
+                            <span class="badge badge-instock px-3 py-2 rounded-pill shadow-sm">
+                                <i class="fa-solid fa-circle-check me-1"></i> In Stock (<?php echo $product['stock']; ?>)
+                            </span>
+                        <?php else: ?>
+                            <span class="badge badge-outofstock px-3 py-2 rounded-pill shadow-sm">
+                                <i class="fa-solid fa-circle-xmark me-1"></i> Out of Stock
+                            </span>
+                        <?php endif; ?>
+                    </div>
 
+                    <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted d-block small mb-0">Price</span>
+                            <span class="price-tag text-primary">Rs. <?php echo number_format($product['price'], 2); ?></span>
+                        </div>
+                        
+                        <?php if($product['stock'] > 0): ?>
+                            <form action="cart.php" method="POST" class="m-0 ajax-cart-form">
+                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                <button type="submit" name="add_to_cart" class="btn btn-cart-premium rounded-circle shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" title="Add to Cart">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <button disabled class="btn btn-disabled-premium rounded-circle d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" title="Out of Stock">
+                                <i class="fa-solid fa-ban"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    <?php endforeach; ?>
+</div>
    //newsletter
    <div class="newsletter-section py-5 mt-5 position-relative overflow-hidden">
     <div class="blob blob-1"></div>
@@ -183,6 +226,113 @@ $products = $stmt->fetchAll();
 </div>
 
 <style>
+    /* Premium Card Styling */
+.premium-product-card {
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    border-radius: 20px !important;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    overflow: hidden;
+}
+
+.premium-product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Image Control */
+.product-image-wrapper {
+    height: 240px;
+    position: relative;
+    background-color: #fcfcfc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.product-img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.premium-product-card:hover .product-img {
+    transform: scale(1.08);
+}
+
+/* Hover Overlay Effect */
+.image-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.03);
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.premium-product-card:hover .image-overlay {
+    opacity: 1;
+}
+
+/* Typography & Badges */
+.product-title-link {
+    font-size: 1.15rem;
+    line-height: 1.4;
+    height: 2.8rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.price-tag {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #171c24 !important;
+}
+
+.badge-instock { background-color: #e8f5e9 !important; color: #2e7d32 !important; font-weight: 600; }
+.badge-outofstock { background-color: #ffebee !important; color: #c62828 !important; font-weight: 600; }
+
+/* Premium Circle Buttons */
+.btn-cart-premium {
+    width: 48px;
+    height: 48px;
+    background-color: #febd69;
+    color: #131921;
+    border: none;
+    font-size: 1.15rem;
+    transition: all 0.3s ease;
+}
+
+.btn-cart-premium:hover {
+    background-color: #171c24;
+    color: #febd69;
+    transform: rotate(360deg);
+}
+
+.btn-disabled-premium {
+    width: 48px;
+    height: 48px;
+    background-color: #e0e0e0;
+    color: #a0a0a0;
+    border: none;
+    cursor: not-allowed;
+    font-size: 1.15rem;
+}
+
+
+
+
+
     .newsletter-section {
         background: linear-gradient(135deg, #1e2430 0%, #0f1319 100%);
         border-radius: 24px;
