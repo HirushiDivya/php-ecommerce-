@@ -313,6 +313,7 @@ $products = $stmt->fetchAll();
     transition: all 0.3s ease;
 }
 
+
 .btn-cart-premium:hover {
     background-color: #171c24;
     color: #febd69;
