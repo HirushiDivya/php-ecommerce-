@@ -1,6 +1,25 @@
 <?php
 session_start();
 require_once 'config/database.php';
+
+// --- 1. AJAX ADD TO CART LOGIC (මේක තියෙන්න ඕනේ පිටුවේ උඩමයි) ---
+if (isset($_POST['ajax_add_to_cart'])) {
+    $product_id = $_POST['product_id'];
+    
+    if (!isset($_SESSION['cart'])) {
+        $_SESSION['cart'] = [];
+    }
+    
+    if (isset($_SESSION['cart'][$product_id])) {
+        $_SESSION['cart'][$product_id]++;
+    } else {
+        $_SESSION['cart'][$product_id] = 1;
+    }
+    
+    $total_count = array_sum($_SESSION['cart']);
+    echo json_encode(['status' => 'success', 'total_count' => $total_count]);
+    exit; 
+}
 ?>
 
 <!DOCTYPE html>
@@ -62,33 +81,45 @@ require_once 'config/database.php';
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php
-session_start();
-require_once 'config/database.php';
-
-// --- අලුත් AJAX ADD TO CART LOGIC ---
-// බ්‍රවුසර් එකෙන් රහසින්ම එන රික්වෙස්ට් එකක්ද කියා බලනවා
-if (isset($_POST['ajax_add_to_cart'])) {
-    $product_id = $_POST['product_id'];
-    
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = [];
-    }
-    
-    if (isset($_SESSION['cart'][$product_id])) {
-        $_SESSION['cart'][$product_id]++;
-    } else {
-        $_SESSION['cart'][$product_id] = 1;
-    }
-    
-    // මුළු කාර්ට් එකේම තියෙන මුළු බඩු ගණන (Total Items Count) ගණන් හදනවා
-    $total_count = array_sum($_SESSION['cart']);
-    
-    // JavaScript එකට පිළිතුරක් විදිහට JSON format එකෙන් යවනවා
-    echo json_encode(['status' => 'success', 'total_count' => $total_count]);
-    exit; // පිටුව වෙනත් තැනකට යන්න නොදී මෙතනින් නවත්වනවා
-}
-?>
+                                        <?php 
+                                        // සෙශන් එකේ තියෙන බඩු ටික ඩේටාබේස් එකෙන් අරන් පෙන්වන ලූප් එක
+                                        foreach($_SESSION['cart'] as $id => $qty) {
+                                            $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+                                            $stmt->execute([$id]);
+                                            $prod = $stmt->fetch();
+                                            
+                                            if ($prod) {
+                                                $item_total = $prod['price'] * $qty;
+                                                ?>
+                                                <tr class="cart-item-row" data-id="<?php echo $id; ?>" data-price="<?php echo $prod['price']; ?>">
+                                                    <td class="text-center">
+                                                        <input class="form-check-input item-checkbox" type="checkbox" name="selected_items[]" value="<?php echo $id; ?>" checked>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="img-placeholder me-3">
+                                                                <i class="fa-solid fa-laptop text-secondary"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="fw-bold mb-0 text-dark"><?php echo htmlspecialchars($prod['title']); ?></h6>
+                                                                <small class="text-muted">In Stock: <?php echo $prod['stock']; ?></small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>Rs. <?php echo number_format($prod['price'], 2); ?></td>
+                                                    <td class="text-center">
+                                                        <div class="d-inline-flex align-items-center border rounded">
+                                                            <button type="button" class="btn btn-sm btn-light px-2 py-1 qty-minus" onclick="changeQuantity(<?php echo $id; ?>, -1)"><i class="fa-solid fa-minus"></i></button>
+                                                            <input type="text" id="qty-<?php echo $id; ?>" name="quantities[<?php echo $id; ?>]" class="qty-input border-0 bg-transparent" value="<?php echo $qty; ?>" readonly>
+                                                            <button type="button" class="btn btn-sm btn-light px-2 py-1 qty-plus" onclick="changeQuantity(<?php echo $id; ?>, 1)"><i class="fa-solid fa-plus"></i></button>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-dark item-total-display">Rs. <?php echo number_format($item_total, 2); ?></td>
+                                                </tr>
+                                                <?php 
+                                            }
+                                        } 
+                                        ?>
                                     </tbody>
                                 </table>
                             </div>
@@ -138,16 +169,13 @@ if (isset($_POST['ajax_add_to_cart'])) {
     </div>
 
     <script>
-    // 1. Plus/Minus ක්ලික් කරද්දී backend එකට data යවන function එක
     function changeQuantity(productId, change) {
         const qtyInput = document.getElementById('qty-' + productId);
         let currentQty = parseInt(qtyInput.value);
         let newQty = currentQty + change;
 
-        // 1ට වඩා අඩු වෙන්න දෙන්නේ නැහැ
         if (newQty < 1) return;
 
-        // JavaScript Fetch API එක පාවිච්චි කරලා background එකෙන්ම සෙශන් එක update කරනවා
         fetch('actions/update_cart.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -156,9 +184,8 @@ if (isset($_POST['ajax_add_to_cart'])) {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                // සෙශන් එක අප්ඩේට් වුනාට පස්සේ UI එකේ අගය වෙනස් කරනවා
                 qtyInput.value = newQty;
-                calculateCartTotal(); // මුළු එකතුව නැවත ගණනය කරනවා
+                calculateCartTotal(); 
             } else {
                 alert('Error updating cart');
             }
@@ -166,7 +193,6 @@ if (isset($_POST['ajax_add_to_cart'])) {
         .catch(error => console.error('Error:', error));
     }
 
-    // 2. මුළු එකතුව හදන පැරණි Function එක (කලින් එකමයි)
     function calculateCartTotal() {
         let grandTotal = 0;
         const rows = document.querySelectorAll(".cart-item-row");
@@ -179,7 +205,7 @@ if (isset($_POST['ajax_add_to_cart'])) {
             
             row.querySelector(".item-total-display").innerText = "Rs. " + itemTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
-            if (checkbox.checked) {
+            if (checkbox && checkbox.checked) {
                 grandTotal += itemTotal;
             }
         });
@@ -196,6 +222,5 @@ if (isset($_POST['ajax_add_to_cart'])) {
         calculateCartTotal();
     });
     </script>
-
 </body>
 </html>
